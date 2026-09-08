@@ -4,15 +4,7 @@ const getBaseURL = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  if (typeof window !== 'undefined') {
-    const { hostname } = window.location;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:5000/api';
-    }
-    // Fallback to production API if deployed to Vercel without env var
-    return 'https://nexora-b7vi.onrender.com/api';
-  }
-  // SSR fallback
+  // Default directly to live Render backend API
   return 'https://nexora-b7vi.onrender.com/api';
 };
 

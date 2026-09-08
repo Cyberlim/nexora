@@ -264,13 +264,19 @@ export default function PartnerRegisterWizard() {
     setAadharError('');
     setApiLoading(true);
     try {
-      const { data } = await api.post('/partner/kyc/aadhar', {});
-      if (data.success && data.action_url) {
+      const { data } = await api.post('/partner/kyc/aadhar', { aadharNumber: aadharNumber.trim() });
+      if (data.action_url) {
         setSuccessMsg("Redirecting to DigiLocker...");
         window.location.href = data.action_url;
+      } else if (data.success) {
+        setAadharVerified(true);
+        setAadharName(data.vendor?.kycDetails?.aadharName || name);
+        setAadharNumber(data.vendor?.kycDetails?.aadharNumber || aadharNumber || "999988881234");
+        setSuccessMsg("Aadhaar verified successfully!");
       }
     } catch (err: any) {
-      setAadharError(err.response?.data?.message || "Failed to start DigiLocker verification.");
+      setAadharError(err.response?.data?.message || "Failed to complete Aadhaar verification.");
+    } finally {
       setApiLoading(false);
     }
   };
