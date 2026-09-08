@@ -10,10 +10,10 @@ const getBaseURL = () => {
       return 'http://localhost:5000/api';
     }
     // Fallback to production API if deployed to Vercel without env var
-    return 'https://nexora-itwv.onrender.com/api';
+    return 'https://nexora-6x8q.onrender.com/api';
   }
   // SSR fallback
-  return 'https://nexora-itwv.onrender.com/api';
+  return 'https://nexora-6x8q.onrender.com/api';
 };
 
 const api = axios.create({
