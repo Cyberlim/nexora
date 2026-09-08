@@ -1151,12 +1151,16 @@ function AdminDashboardContent() {
     finally { setSettingsLoading(false); }
   };
 
-  const handleVerify = async (id: string, action: 'verify' | 'reject') => {
+  const handleVerify = async (id: string, action: 'verify' | 'approve' | 'reject', reviewNote?: string) => {
     try {
-      await api.patch(`/admin/vendors/${id}/verify`, { action });
-      alert(`Partner ${action === 'verify' ? 'approved' : 'rejected'}`);
-      fetchPendingVendors(); fetchMetrics();
-    } catch (e) { alert('Action failed'); }
+      const act = action === 'approve' ? 'verify' : action;
+      await api.patch(`/admin/vendors/${id}/verify`, { action: act, reviewNote });
+      fetchPendingVendors();
+      fetchPartners();
+      fetchMetrics();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Action failed');
+    }
   };
 
   const handleDeleteService = async (id: string, name: string) => {
@@ -2488,21 +2492,26 @@ function AdminDashboardContent() {
                             </td>
                             <td className="p-4 text-foreground/50">{new Date(p.createdAt).toLocaleDateString('en-IN')}</td>
                             <td className="p-4 text-right">
-                              <div className="flex justify-end gap-1.5">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {p.kycStatus !== 'APPROVED' && (
+                                  <button
+                                    onClick={() => handleVerify(p._id, 'verify')}
+                                    className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1"
+                                    title="Approve Partner"
+                                  >
+                                    <Check className="w-3.5 h-3.5" /> Approve
+                                  </button>
+                                )}
                                 <button
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     setEditingPartner(null);
-                                    if (p.kycStatus === 'PENDING_ADMIN_APPROVAL') {
-                                      setActiveTab('verification');
-                                    } else {
-                                      setSelectedReviewVendor(p);
-                                    }
+                                    setSelectedReviewVendor(p);
                                   }}
                                   className="px-2.5 py-1.5 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-bold rounded-xl transition-all"
                                 >
-                                  {p.kycStatus === 'PENDING_ADMIN_APPROVAL' ? 'Review KYC' : 'View File'}
+                                  View File
                                 </button>
                                 <button
                                   onClick={(e) => {

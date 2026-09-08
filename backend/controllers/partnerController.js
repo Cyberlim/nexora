@@ -40,7 +40,7 @@ const registerVendor = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: "An account with this phone number already exists." });
   }
 
-  // Create new ServicePartner with status APPROVED
+  // Create new ServicePartner with status PENDING_ADMIN_APPROVAL
   const vendor = await ServicePartner.create({
     name: name.trim(),
     email: email.toLowerCase(),
@@ -49,19 +49,19 @@ const registerVendor = asyncHandler(async (req, res) => {
     password,
     dob,
     gender,
-    kycStatus: "APPROVED",
-    isApproved: true,
+    kycStatus: "PENDING_ADMIN_APPROVAL",
+    isApproved: false,
     kycDetails: {
-      aadharNumber: req.body.aadharNumber || "999988881234",
-      aadharVerified: true,
+      aadharNumber: req.body.aadharNumber || "",
+      aadharVerified: false,
       aadharName: name.trim(),
-      panNumber: req.body.panNumber || "ABCDE1234F",
-      panVerified: true,
+      panNumber: req.body.panNumber || "",
+      panVerified: false,
       panName: name.trim().toUpperCase(),
       gstNumber: "",
       gstVerified: false,
       businessName: name.trim(),
-      verifiedAt: new Date()
+      submittedAt: new Date()
     }
   });
 
@@ -69,7 +69,7 @@ const registerVendor = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: "Registration completed and approved successfully!",
+    message: "Registration completed. Application submitted for admin approval.",
     token,
     vendor
   });
@@ -353,21 +353,18 @@ const submitGst = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Submit Final KYC for Admin Approval / Auto-Approval
+// @desc    Submit Final KYC for Admin Approval
 // @route   POST /api/partner/kyc/submit
 // @access  Private (ServicePartner)
 const submitKycFinal = asyncHandler(async (req, res) => {
   const vendor = await ServicePartner.findById(req.user.userId);
   if (!vendor) return res.status(404).json({ success: false, message: "Service Partner not found" });
 
-  vendor.kycStatus = "APPROVED";
-  vendor.isApproved = true;
+  vendor.kycStatus = "PENDING_ADMIN_APPROVAL";
+  vendor.isApproved = false;
   vendor.rejectionReason = null;
   vendor.kycDetails = vendor.kycDetails || {};
-  vendor.kycDetails.aadharVerified = true;
-  vendor.kycDetails.panVerified = true;
   vendor.kycDetails.submittedAt = new Date();
-  vendor.kycDetails.approvedAt = new Date();
   await vendor.save();
 
   try {
@@ -377,8 +374,8 @@ const submitKycFinal = asyncHandler(async (req, res) => {
     admins.forEach(a => createNotification(
       a._id,
       "admin",
-      "Partner Approved",
-      `${vendor.name} KYC profile and documents have been approved.`,
+      "New Partner KYC Pending Approval",
+      `${vendor.name} has submitted documents for approval.`,
       "approval",
       { vendorId: vendor._id }
     ));
@@ -388,7 +385,7 @@ const submitKycFinal = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: "KYC profile and documents approved successfully!",
+    message: "KYC documents submitted successfully! Awaiting administrator approval.",
     vendor
   });
 });
