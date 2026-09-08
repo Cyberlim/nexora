@@ -60,8 +60,6 @@ const listVendors = asyncHandler(async (req, res) => {
 
   if (kycStatus && kycStatus !== 'ALL') {
     filter.kycStatus = kycStatus;
-  } else {
-    filter.kycStatus = { $nin: ["NOT_STARTED", "REGISTERED", "KYC_NOT_STARTED", "KYC_IN_PROGRESS"] };
   }
   if (category) filter.category = category;
 
@@ -115,10 +113,10 @@ const listUsers = asyncHandler(async (req, res) => {
 const verifyVendorKyc = asyncHandler(async (req, res) => {
   const { action, reviewNote } = req.body;
 
-  if (!["verify", "reject"].includes(action)) {
+  if (!["verify", "approve", "reject"].includes(action)) {
     return res.status(400).json({
       success: false,
-      message: "action must be 'verify' or 'reject'.",
+      message: "action must be 'verify', 'approve', or 'reject'.",
     });
   }
 
@@ -131,23 +129,21 @@ const verifyVendorKyc = asyncHandler(async (req, res) => {
     });
   }
 
-  if (vendor.kycStatus !== "PENDING_ADMIN_APPROVAL") {
-    return res.status(400).json({
-      success: false,
-      message: `Cannot review KYC with status '${vendor.kycStatus}'. Expected 'PENDING_ADMIN_APPROVAL'.`,
-    });
-  }
-
-  vendor.kycStatus = action === "verify" ? "APPROVED" : "REJECTED";
+  const isApproved = action === "verify" || action === "approve";
+  vendor.kycStatus = isApproved ? "APPROVED" : "REJECTED";
+  vendor.isApproved = isApproved;
   vendor.kycDetails = vendor.kycDetails || {};
   vendor.kycDetails.reviewedAt = new Date();
   vendor.kycDetails.reviewNote = reviewNote || "";
 
-  if (action === "reject") {
+  if (!isApproved) {
     vendor.isOnline = false;
     vendor.rejectionReason = reviewNote || "Your application requires correction. Please review and resubmit.";
   } else {
     vendor.rejectionReason = null; // Clear on approval
+    vendor.kycDetails.approvedAt = new Date();
+    vendor.kycDetails.aadharVerified = true;
+    vendor.kycDetails.panVerified = true;
   }
 
   await vendor.save();
@@ -156,9 +152,9 @@ const verifyVendorKyc = asyncHandler(async (req, res) => {
   await createNotification(
     vendor._id,
     "vendor",
-    action === "verify" ? "KYC Approved!" : "KYC Rejected",
-    action === "verify" 
-      ? "Congratulations! Your profile has been approved. You are now active on Nexora." 
+    isApproved ? "KYC Approved! 🎉" : "KYC Rejected",
+    isApproved 
+      ? "Congratulations! Your partner profile has been approved by administrator. You are now active on Nexora." 
       : `Your KYC profile has been rejected. Reason: ${reviewNote || "Information mismatch."}`,
     "approval",
     { vendorId: vendor._id }
@@ -166,7 +162,7 @@ const verifyVendorKyc = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: `Vendor KYC ${action === "verify" ? "verified" : "rejected"} successfully.`,
+    message: `Vendor KYC ${isApproved ? "approved" : "rejected"} successfully.`,
     vendor,
   });
 });
