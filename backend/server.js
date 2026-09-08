@@ -35,7 +35,16 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
+// ─── Health Check & Root Route ────────────────────────────────────────────────
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Nexora Backend API is running successfully! 🚀",
+    status: "healthy",
+    docs: "/api/health",
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
     success: true,
