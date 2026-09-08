@@ -11,6 +11,48 @@ const { sendOTP } = require("../services/emailService");
 
 const pendingUsers = new Map();
 
+// @desc    Direct User Signup (Saves directly to database without OTP/JWT blocker)
+// @route   POST /api/user/signup
+// @access  Public
+const registerUser = asyncHandler(async (req, res) => {
+  const { name, email, phone, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: "Name, email, and password are required." });
+  }
+
+  // Check unique constraints
+  let existingEmail = await User.findOne({ email: email.toLowerCase() });
+  if (existingEmail) {
+    return res.status(400).json({ success: false, message: "An account with this email address already exists." });
+  }
+
+  if (phone) {
+    let existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return res.status(400).json({ success: false, message: "An account with this phone number already exists." });
+    }
+  }
+
+  const user = await User.create({
+    name: name.trim(),
+    email: email.toLowerCase(),
+    phone: phone ? phone.trim() : undefined,
+    password
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Registration successful! You can now log in.",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone
+    }
+  });
+});
+
 // @desc    Request OTP for User Signup
 // @route   POST /api/user/request-signup-otp
 // @access  Public
@@ -383,6 +425,7 @@ const loginGoogle = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  registerUser,
   requestSignupOtp,
   verifySignupOtp,
   loginUserPassword,

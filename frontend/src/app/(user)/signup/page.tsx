@@ -65,20 +65,19 @@ function SignupPageContent() {
 
     setIsLoading(true);
     try {
-      const payload: any = {
+      const payload = {
         name: name.trim(),
         email: email.toLowerCase(),
         phone: phone.trim(),
         password
       };
 
-      const { data } = await api.post('/user/request-signup-otp', payload);
+      const { data } = await api.post('/user/signup', payload);
       if (data.success) {
-        if (data.devOtp) setDevOtp(data.devOtp);
-        setStep('otp');
+        router.push(`/login?signup_success=true&redirect=${encodeURIComponent(redirectTo)}`);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send OTP.');
+      setError(err.response?.data?.message || 'Registration failed. Please check your details.');
     } finally {
       setIsLoading(false);
     }
