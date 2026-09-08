@@ -9,11 +9,11 @@ const getBaseURL = () => {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:5000/api';
     }
-    // Fallback to local API
-    return 'http://localhost:5000/api';
+    // Fallback to production API if deployed to Vercel without env var
+    return 'https://nexora-itwv.onrender.com/api';
   }
   // SSR fallback
-  return 'http://127.0.0.1:5000/api';
+  return 'https://nexora-itwv.onrender.com/api';
 };
 
 const api = axios.create({
